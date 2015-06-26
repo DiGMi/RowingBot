@@ -18,6 +18,7 @@ class Bot(object):
         self.__status = {}
         self.__cache_pos = {}
         self.__cache_name = {}
+        self.__cache_size = {}
 
 
     def __run_method(self, method, params=None):
@@ -59,12 +60,17 @@ class Bot(object):
             if boat and cmd == '!new':
                 self.send_message(chat_id, 'Are you sure you want to erase the last practice?')
                 self.__status[chat_id] = WAITING_NEW_CONFIRM
+                self.__cache_size[chat_id] = params
                 return
 
             self.__status[chat_id] = IDLE
             print 'New boat!'
-            if params == None:
+            if params is None:
                 params = 8
+                if chat_id in self.__cache_size:
+                    params = self.__cache_size[chat_id]
+                    if params is None:
+                        params = 8
             self.__boat[chat_id] = Boat(int(params))
             self.send_message(chat_id, 'Who is coming to the next ' +
                     'practice?\nPress "!" and the number you would like ' +
@@ -142,5 +148,5 @@ class Bot(object):
                     pass
             time.sleep(1)
 
-b = Bot('Token!!!')
+b = Bot('Toke!!!')
 b.message_loop()
