@@ -14,10 +14,10 @@ class Bot(object):
     def __init__(self, token):
         self.__token = token
         self.__last_received_update = None
-        self.__boat = None
-        self.__status = IDLE
-        self.__cache_pos = 0
-        self.__cache_replace = 0
+        self.__boat = {} 
+        self.__status = {}
+        self.__cache_pos = {}
+        self.__cache_name = {}
 
 
     def __run_method(self, method, params=None):
@@ -47,29 +47,32 @@ class Bot(object):
         sender = msg['from']
         text = msg['text'].strip()
         chat_id = msg['chat']['id']
-        splitted = text.split(' ',2)
+        splitted = text.split(' ',1)
         cmd = splitted[0]
         params = None
+        boat = None
+        if chat_id in self.__boat:
+            boat = self.__boat[chat_id]
         if len(splitted) > 1:
             params = splitted[1].strip()
-        if cmd == '!new' or cmd == '!yes' and self.__status == WAITING_NEW_CONFIRM:
-            if self.__boat and cmd == '!new':
+        if cmd == '!new' or cmd == '!yes' and chat_id in self.__status and self.__status[chat_id] == WAITING_NEW_CONFIRM:
+            if boat and cmd == '!new':
                 self.send_message(chat_id, 'Are you sure you want to erase the last practice?')
-                self.__status = WAITING_NEW_CONFIRM
+                self.__status[chat_id] = WAITING_NEW_CONFIRM
                 return
 
-            self.__status = IDLE
+            self.__status[chat_id] = IDLE
             print 'New boat!'
             if params == None:
                 params = 8
-            self.__boat = Boat(int(params))
+            self.__boat[chat_id] = Boat(int(params))
             self.send_message(chat_id, 'Who is coming to the next ' +
                     'practice?\nPress "!" and the number you would like ' +
                     'to take. For example, if you would like to sit at ' +
                     'Liron\'s place with a view to Loch-Blecher, send the ' +
                     'message "!1"')
-        elif posre.match(cmd) or cmd == '!yes' and self.__status == WAITING_REPLACE_CONFIRM:
-            if self.__boat is None:
+        elif posre.match(cmd) or cmd == '!yes' and chat_id in self.__status and self.__status[chat_id] == WAITING_REPLACE_CONFIRM:
+            if boat is None:
                 return
             pos = 0
             print 'New rower!'
@@ -77,24 +80,25 @@ class Bot(object):
             if params is not None:
                 name = params
             if cmd == '!yes':
-                pos = self.__cache_pos
-                name = self.__cache_name
+                pos = self.__cache_pos[chat_id]
+                name = self.__cache_name[chat_id]
             else:
                 pos = int(cmd[1])
-            if self.__boat.rowers[pos-1] is not None and cmd != '!yes':
+            if boat.rowers[pos-1] is not None and cmd != '!yes':
                 self.send_message(chat_id, 'This spot is already taken by ' +
                         '%s, are you sure you want to replace it?' %
-                        self.__boat.rowers[pos-1])
-                self.__status = WAITING_REPLACE_CONFIRM
-                self.__cache_pos = pos
-                self.__cache_name = name
+                        boat.rowers[pos-1])
+                self.__status[chat_id] = WAITING_REPLACE_CONFIRM
+                self.__cache_pos[chat_id] = pos
+                self.__cache_name[chat_id] = name
                 return
 
-            self.__status = IDLE
-            self.__boat.add_rower(pos, name)
-            if len(self.__boat.get_missing()) == 0:
+            self.__status[chat_id] = IDLE
+            print pos,name
+            boat.add_rower(pos, name)
+            if len(boat.get_missing()) == 0:
                 #self.send_message(chat_id, u'\U0001F3BA\U0001F3BA\U0001F3BA')
-                rowers = self.__boat.rowers
+                rowers = boat.rowers
                 ret = ''
                 i = 1
                 for x in rowers:
@@ -107,17 +111,17 @@ class Bot(object):
 
 
         elif cmd == '!missing':
-            self.__status = IDLE
-            if self.__boat == None:
+            self.__status[chat_id] = IDLE
+            if boat is None:
                 return
-            missing = ', '.join([str(x) for x in self.__boat.get_missing()])
+            missing = ', '.join([str(x) for x in boat.get_missing()])
             self.send_message(chat_id, 'We are still missing %s!' % missing)
         elif cmd == '!status':
-            self.__status = IDLE
-            if self.__boat == None:
+            self.__status[chat_id] = IDLE
+            if boat is None:
                 self.send_message(chat_id, 'No active session')
             else:
-                rowers = self.__boat.rowers
+                rowers = boat.rowers
                 ret = ''
                 i = 1
                 for x in rowers:
@@ -138,5 +142,5 @@ class Bot(object):
                     pass
             time.sleep(1)
 
-b = Bot('TOKEN!!!!')
+b = Bot('Token!!!')
 b.message_loop()
