@@ -3,12 +3,15 @@ import json
 import time
 from boat import Boat
 import re
+import pickle
+from os import path
 
 posre = re.compile('!\d')
 
 IDLE = 0
 WAITING_NEW_CONFIRM = 1
 WAITING_REPLACE_CONFIRM = 2
+DATA_FILE = 'RowingBot.dat'
 
 class Bot(object):
     def __init__(self, token):
@@ -41,7 +44,7 @@ class Bot(object):
         return updates['result']
 
     def send_message(self, chat_id, text):
-        params = {'chat_id': chat_id, 'text': text}
+        params = {'chat_id': chat_id, 'text': text.encode('utf-8')}
         updates = self.__run_method('sendMessage',params)
 
     def __handle_message(self, msg):
@@ -103,7 +106,7 @@ class Bot(object):
             print pos,name
             boat.add_rower(pos, name)
             if len(boat.get_missing()) == 0:
-                #self.send_message(chat_id, u'\U0001F3BA\U0001F3BA\U0001F3BA')
+                self.send_message(chat_id, u'\U0001F3BA\U0001F3BA\U0001F3BA')
                 rowers = boat.rowers
                 ret = ''
                 i = 1
@@ -139,14 +142,34 @@ class Bot(object):
 
     def message_loop(self):
         while True:
-            updates = self.__get_updates()
-            for x in updates:
-                try:
-                    msg = x['message']
-                    self.__handle_message(msg)
-                except:
-                    pass
-            time.sleep(1)
+            try:
+                time.sleep(1)
+                updates = self.__get_updates()
+                for x in updates:
+                    try:
+                        msg = x['message']
+                        self.__handle_message(msg)
+                    except:
+                        pass
+                with open(DATA_FILE,'wb') as f:
+                    pickle.dump(self,f)
+            except:
+                print 'Error on message loop'
+                pass
 
-b = Bot('Toke!!!')
-b.message_loop()
+def main():
+    b = None
+    if path.isfile(DATA_FILE):
+        with open(DATA_FILE,'rb') as f:
+            b = pickle.load(f)
+    else:
+        import sys
+        if len(sys.argv) < 2:
+            print 'Usage: ./%s token' % sys.argv[0]
+            return
+        
+        b = Bot(sys.argv[1])
+    b.message_loop()
+
+if __name__ == '__main__':
+    main()
