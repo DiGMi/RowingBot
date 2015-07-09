@@ -96,7 +96,7 @@ class Bot(object):
                 if boat.rowers[pos-1] is None:
                     return
                 self.send_message(chat_id, 
-                        '%s, was removed from the boat, %d now is free' %
+                        '%s was removed from the boat, %d now is free' %
                         (boat.rowers[pos-1],pos))
                 boat.add_rower(pos, None)
                 return
