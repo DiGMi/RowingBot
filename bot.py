@@ -84,7 +84,6 @@ class Bot(object):
             if boat is None:
                 return
             pos = 0
-            print 'New rower!'
             name = '%s %s' % (sender['first_name'], sender['last_name'])
             if params is not None:
                 name = params
@@ -93,6 +92,16 @@ class Bot(object):
                 name = self.__cache_name[chat_id]
             else:
                 pos = int(cmd[1])
+            if name == '-':
+                if boat.rowers[pos-1] is None:
+                    return
+                self.send_message(chat_id, 
+                        '%s, was removed from the boat, %d now is free' %
+                        (boat.rowers[pos-1],pos))
+                boat.add_rower(pos, None)
+                return
+
+            print 'New rower!'
             if boat.rowers[pos-1] is not None and cmd != '!yes':
                 self.send_message(chat_id, 'This spot is already taken by ' +
                         '%s, are you sure you want to replace it?' %
@@ -124,7 +133,10 @@ class Bot(object):
             if boat is None:
                 return
             missing = ', '.join([str(x) for x in boat.get_missing()])
-            self.send_message(chat_id, 'We are still missing %s!' % missing)
+            if len(missing) == 0:
+                self.send_message(chat_id, 'No one is missing!')
+            else:
+                self.send_message(chat_id, 'We are still missing %s!' % missing)
         elif cmd == '!status':
             self.__status[chat_id] = IDLE
             if boat is None:
